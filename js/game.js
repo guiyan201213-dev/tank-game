@@ -600,12 +600,12 @@ const Game = {
         // 1. 玩家出生点 Row 19, Col 6
         GameMap.currentGrid[19][6] = GameMap.TILE_EMPTY;
         
-        // 2. 三个敌方出生地 (以每个 spot 为中心的 2x2 范围进行清空)
+        // 2. 三个敌方出生地 (以每个 spot 为中心的 3x3 范围进行清空，安全偏置设为 24px 以防 boss 等大型坦克卡死)
         for (const spot of this.spawnLocations) {
-            const colStart = Math.floor((spot.x - 18) / GameMap.TILE_SIZE);
-            const colEnd = Math.floor((spot.x + 18) / GameMap.TILE_SIZE);
-            const rowStart = Math.floor((spot.y - 18) / GameMap.TILE_SIZE);
-            const rowEnd = Math.floor((spot.y + 18) / GameMap.TILE_SIZE);
+            const colStart = Math.floor((spot.x - 24) / GameMap.TILE_SIZE);
+            const colEnd = Math.floor((spot.x + 24) / GameMap.TILE_SIZE);
+            const rowStart = Math.floor((spot.y - 24) / GameMap.TILE_SIZE);
+            const rowEnd = Math.floor((spot.y + 24) / GameMap.TILE_SIZE);
             
             for (let r = rowStart; r <= rowEnd; r++) {
                 for (let c = colStart; c <= colEnd; c++) {
@@ -634,11 +634,11 @@ const Game = {
             }
         }
 
-        // 动态清空格子，防止由于地图设计漏洞或者自定义地图导致的卡出生点BUG
-        const colStart = Math.floor((spot.x - 18) / GameMap.TILE_SIZE);
-        const colEnd = Math.floor((spot.x + 18) / GameMap.TILE_SIZE);
-        const rowStart = Math.floor((spot.y - 18) / GameMap.TILE_SIZE);
-        const rowEnd = Math.floor((spot.y + 18) / GameMap.TILE_SIZE);
+        // 动态清空格子，防止由于地图设计漏洞或者自定义地图导致的卡出生点BUG (安全偏置设为 24px)
+        const colStart = Math.floor((spot.x - 24) / GameMap.TILE_SIZE);
+        const colEnd = Math.floor((spot.x + 24) / GameMap.TILE_SIZE);
+        const rowStart = Math.floor((spot.y - 24) / GameMap.TILE_SIZE);
+        const rowEnd = Math.floor((spot.y + 24) / GameMap.TILE_SIZE);
         for (let r = rowStart; r <= rowEnd; r++) {
             for (let c = colStart; c <= colEnd; c++) {
                 if (r >= 0 && r < GameMap.ROWS && c >= 0 && c < GameMap.COLS) {
@@ -1017,6 +1017,11 @@ const Game = {
             this.drawDamageFlash();
         }
 
+        // 12. 绘制玩家的赛博发光瞄准准星 (Cursor Crosshair)
+        if (this.player && this.player.isAlive && !this.gamePaused) {
+            this.drawCrosshair();
+        }
+
         this.ctx.restore();
     },
 
@@ -1087,6 +1092,43 @@ const Game = {
         // 绘制半透明全屏微红底色，增强受击震慑力
         this.ctx.fillStyle = `rgba(255, 51, 51, ${(this.damageFlashTimer / 15) * 0.08})`;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.restore();
+    },
+
+    // 绘制玩家的高科技霓虹瞄准准星
+    drawCrosshair() {
+        this.ctx.save();
+        this.ctx.translate(this.mouseX, this.mouseY);
+        
+        // 霓虹青色外发光
+        this.ctx.shadowBlur = 8;
+        this.ctx.shadowColor = '#00f0ff';
+        this.ctx.strokeStyle = '#00f0ff';
+        this.ctx.fillStyle = '#00f0ff';
+        this.ctx.lineWidth = 1.5;
+
+        // 1. 绘制中心微小发光红心圆点
+        this.ctx.fillStyle = '#ff007f';
+        this.ctx.shadowColor = '#ff007f';
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 2, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // 2. 绘制外部圆形准心圈
+        this.ctx.strokeStyle = '#00f0ff';
+        this.ctx.shadowColor = '#00f0ff';
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 11, 0, Math.PI * 2);
+        this.ctx.stroke();
+
+        // 3. 绘制延伸十字刻度线
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, -17); this.ctx.lineTo(0, -11);
+        this.ctx.moveTo(0, 11); this.ctx.lineTo(0, 17);
+        this.ctx.moveTo(-17, 0); this.ctx.lineTo(-11, 0);
+        this.ctx.moveTo(11, 0); this.ctx.lineTo(17, 0);
+        this.ctx.stroke();
+
         this.ctx.restore();
     },
 
